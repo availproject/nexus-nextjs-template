@@ -37,7 +37,7 @@ const NexusBridge = () => {
     type: "bridge",
   });
   const [isLoading, setIsLoading] = useState(false);
-
+  const [error, setError] = useState<string | null>(null);
   const initiateBridge = async () => {
     if (!inputs.chain || !inputs.token || !inputs.amount) return;
     setIsLoading(true);
@@ -47,12 +47,17 @@ const NexusBridge = () => {
         amount: inputs.amount,
         chainId: inputs.chain,
       });
+      if (!bridgeResult?.success) {
+        console.log("Bridge failed", bridgeResult?.error);
+        setError(bridgeResult?.error as string);
+      }
       if (bridgeResult?.success) {
         console.log("Bridge successful");
         console.log("Explorer URL:", bridgeResult.explorerUrl);
       }
     } catch (error) {
       console.error("Error while bridging:", error);
+      setError(error as string);
     } finally {
       setIsLoading(false);
       intentRefCallback.current = null;
@@ -105,6 +110,7 @@ const NexusBridge = () => {
                 "Send"
               )}
             </Button>
+            {error && <p className="text-red-500">{error}</p>}
           </div>
           <div className="flex items-center flex-col gap-y-3">
             {intentRefCallback?.current?.intent && (
