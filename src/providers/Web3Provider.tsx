@@ -18,7 +18,7 @@ import {
 } from "wagmi/chains";
 import { ConnectKitProvider, getDefaultConfig } from "connectkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import NexusProvider from "./NexusProvider";
+import NexusProvider from "@/components/nexus/NexusProvider";
 
 const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 
@@ -75,9 +75,11 @@ const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <ConnectKitProvider theme="soft" mode="light">
-          <NexusProvider>{children}</NexusProvider>
-        </ConnectKitProvider>
+        <NexusProvider>
+          <ConnectKitProvider theme="soft" mode="light">
+            {children}
+          </ConnectKitProvider>
+        </NexusProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

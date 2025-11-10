@@ -1,12 +1,9 @@
 "use client";
-
-import ConnectWallet from "@/components/blocks/connect-wallet";
 import Nexus from "@/components/nexus";
 import NexusInitButton from "@/components/nexus-init";
-import { useNexus } from "@/providers/NexusProvider";
+import { ConnectKitButton } from "connectkit";
 
 export default function Home() {
-  const { nexusSDK } = useNexus();
   return (
     <div className="font-sans flex flex-col items-center justify-items-center min-h-screen p-8 pb-20 gap-y-6 sm:p-20">
       <h1 className="text-3xl font-semibold z-10">
@@ -16,10 +13,10 @@ export default function Home() {
         Do you first transaction in seconds
       </h2>
       <div className="flex gap-x-4 items-center justify-center z-10">
-        <ConnectWallet />
+        <ConnectKitButton />
         <NexusInitButton />
       </div>
-      {nexusSDK?.isInitialized() && <Nexus />}
+      <Nexus />
       <div
         className="fixed inset-0 z-0"
         style={{

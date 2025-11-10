@@ -1,6 +1,6 @@
 import {
-  TESTNET_TOKEN_METADATA,
   TOKEN_METADATA,
+  type SUPPORTED_CHAINS_IDS,
   type SUPPORTED_TOKENS,
 } from "@avail-project/nexus-core";
 import {
@@ -10,8 +10,19 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../ui/select";
-import { Label } from "../ui/label";
+} from "../../ui/select";
+import { Label } from "../../ui/label";
+import { useNexus } from "../../nexus/NexusProvider";
+import { useMemo } from "react";
+
+interface TokenSelectProps {
+  selectedToken?: SUPPORTED_TOKENS;
+  selectedChain: SUPPORTED_CHAINS_IDS;
+  handleTokenSelect: (token: SUPPORTED_TOKENS) => void;
+  isTestnet?: boolean;
+  disabled?: boolean;
+  label?: string;
+}
 
 const TokenSelect = ({
   selectedToken,
@@ -19,19 +30,17 @@ const TokenSelect = ({
   handleTokenSelect,
   isTestnet = false,
   disabled = false,
-  tokenLabel = "Destination Token",
-}: {
-  selectedToken?: SUPPORTED_TOKENS;
-  selectedChain: string;
-  handleTokenSelect: (token: SUPPORTED_TOKENS) => void;
-  isTestnet?: boolean;
-  disabled?: boolean;
-  tokenLabel?: string;
-}) => {
-  const tokenData = isTestnet ? TESTNET_TOKEN_METADATA : TOKEN_METADATA;
-  const selectedTokenData = Object.entries(tokenData)?.find(([, token]) => {
+  label,
+}: TokenSelectProps) => {
+  const { supportedChainsAndTokens } = useNexus();
+  const tokenData = useMemo(() => {
+    return Object.values(TOKEN_METADATA);
+  }, [selectedChain, supportedChainsAndTokens]);
+
+  const selectedTokenData = tokenData?.find((token) => {
     return token.symbol === selectedToken;
   });
+
   return (
     <Select
       value={selectedToken}
@@ -40,16 +49,14 @@ const TokenSelect = ({
       }
     >
       <div className="flex flex-col items-start gap-y-1">
-        {tokenLabel && (
-          <Label className="text-sm font-semibold">{tokenLabel}</Label>
-        )}
-        <SelectTrigger disabled={disabled}>
-          <SelectValue placeholder="Select a token">
+        {label && <Label className="text-sm font-semibold">{label}</Label>}
+        <SelectTrigger disabled={disabled} className="w-full">
+          <SelectValue placeholder="Select a token" className="w-full">
             {selectedChain && selectedTokenData && (
-              <div className="flex items-center gap-x-2">
+              <div className="flex items-center gap-x-2 w-full">
                 <img
-                  src={selectedTokenData[1].icon}
-                  alt={selectedTokenData[1].symbol}
+                  src={selectedTokenData?.icon}
+                  alt={selectedTokenData?.symbol}
                   width={24}
                   height={24}
                   className="rounded-full"
@@ -63,7 +70,7 @@ const TokenSelect = ({
 
       <SelectContent>
         <SelectGroup>
-          {Object.entries(tokenData)?.map(([, token]) => (
+          {tokenData?.map((token) => (
             <SelectItem key={token.symbol} value={token.symbol}>
               <div className="flex items-center gap-x-2 my-1">
                 <img
