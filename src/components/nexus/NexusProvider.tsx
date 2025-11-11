@@ -54,7 +54,7 @@ const NexusContext = createContext<NexusContextType | undefined>(undefined);
 const NexusProvider = ({
   children,
   config = {
-    network: "mainnet",
+    network: "devnet",
     debug: true,
   },
 }: {
