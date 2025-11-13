@@ -1,4 +1,5 @@
 import {
+  BridgeStepType,
   NEXUS_EVENTS,
   type NexusNetwork,
   NexusSDK,
@@ -87,7 +88,7 @@ const useBridge = ({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const commitLockRef = useRef<boolean>(false);
   const [steps, setSteps] = useState<
-    Array<{ id: number; completed: boolean; step: any }>
+    Array<{ id: number; completed: boolean; step: BridgeStepType }>
   >([]);
 
   const areInputsValid = useMemo(() => {

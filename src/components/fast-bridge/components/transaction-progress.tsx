@@ -65,6 +65,8 @@ const StepList: FC<{ steps: DisplayStep[]; currentIndex: number }> = memo(
   }
 );
 
+StepList.displayName = "StepList";
+
 const TransactionProgress: FC<TransactionProgressProps> = ({
   timer,
   steps,
