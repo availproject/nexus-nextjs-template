@@ -71,7 +71,7 @@ const NexusProvider = ({
   const [swapSupportedChainsAndTokens, setSwapSupportedChainsAndTokens] =
     useState<SupportedChainsResult | null>(null);
   const [unifiedBalance, setUnifiedBalance] = useState<UserAsset[] | null>(
-    null,
+    null
   );
   const [loading, setLoading] = useState<boolean>(false);
   const [intent, setIntent] = useState<OnIntentHookData | null>(null);
@@ -83,7 +83,7 @@ const NexusProvider = ({
   const initData = useCallback(() => {
     if (!sdk.isInitialized) return;
     const list = sdk?.utils?.getSupportedChains(
-      config?.network === "testnet" ? 0 : undefined,
+      config?.network === "testnet" ? 0 : undefined
     );
     setSupportedChainsAndTokens(list ?? null);
     const swapList = sdk?.utils?.getSwapSupportedChainsAndTokens();
@@ -110,7 +110,6 @@ const NexusProvider = ({
 
   const deinitializeNexus = async () => {
     try {
-      if (!sdk.isInitialized()) throw new Error("Nexus is not initialized");
       await sdk.deinit();
       setNexusSDK(null);
     } catch (error) {
@@ -144,11 +143,12 @@ const NexusProvider = ({
       console.log("handleInit attachEventHooks");
       attachEventHooks();
     },
-    [sdk],
+    [sdk]
   );
 
   const fetchUnifiedBalance = async () => {
     try {
+      if (!sdk.isInitialized()) return;
       const unifiedBalance = await sdk?.getUnifiedBalances(true);
       setUnifiedBalance(unifiedBalance);
     } catch (error) {
@@ -209,7 +209,7 @@ const NexusProvider = ({
       swapIntent,
       setSwapIntent,
       handleNexusError,
-    ],
+    ]
   );
   return (
     <NexusContext.Provider value={value}>{children}</NexusContext.Provider>

@@ -1,9 +1,21 @@
 "use client";
 import Nexus from "@/components/nexus";
 import NexusInitButton from "@/components/nexus-init";
+import { useNexus } from "@/components/nexus/NexusProvider";
 import { ConnectKitButton } from "connectkit";
+import { useEffect } from "react";
+import { useAccount } from "wagmi";
 
 export default function Home() {
+  const { status } = useAccount();
+  const { deinitializeNexus } = useNexus();
+
+  useEffect(() => {
+    if (status === "disconnected") {
+      deinitializeNexus();
+    }
+  }, [status]);
+
   return (
     <div className="font-sans flex flex-col items-center justify-items-center min-h-screen p-8 pb-20 gap-y-6 sm:p-20">
       <h1 className="text-3xl font-semibold z-10">
