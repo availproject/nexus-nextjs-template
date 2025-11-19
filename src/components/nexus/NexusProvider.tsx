@@ -83,46 +83,46 @@ const NexusProvider = ({
     swapSupportedChainsAndTokens.current = swapList ?? null;
   }, [sdk, config?.network]);
 
-  const initializeNexus = async (provider: EthereumProvider) => {
-    setLoading(true);
-    try {
-      if (sdk.isInitialized()) throw new Error("Nexus is already initialized");
-      await sdk.initialize(provider);
-      setNexusSDK(sdk);
-      initChainsAndTokens();
-      const [unifiedBalanceResult, rates] = await Promise.allSettled([
-        sdk?.getUnifiedBalances(true),
-        sdk?.utils?.getCoinbaseRates(),
-      ]);
+  // const initializeNexus = async (provider: EthereumProvider) => {
+  //   setLoading(true);
+  //   try {
+  //     if (sdk.isInitialized()) throw new Error("Nexus is already initialized");
+  //     await sdk.initialize(provider);
+  //     setNexusSDK(sdk);
+  //     initChainsAndTokens();
+  //     const [unifiedBalanceResult, rates] = await Promise.allSettled([
+  //       sdk?.getUnifiedBalances(true),
+  //       sdk?.utils?.getCoinbaseRates(),
+  //     ]);
 
-      if (unifiedBalanceResult.status === "fulfilled") {
-        unifiedBalance.current = unifiedBalanceResult.value;
-      }
+  //     if (unifiedBalanceResult.status === "fulfilled") {
+  //       unifiedBalance.current = unifiedBalanceResult.value;
+  //     }
 
-      if (rates?.status === "fulfilled") {
-        // Coinbase returns "units per USD" (e.g., 1 USD = 0.00028 ETH).
-        // Convert to "USD per unit" (e.g., 1 ETH = ~$3514) for straightforward UI calculations.
+  //     if (rates?.status === "fulfilled") {
+  //       // Coinbase returns "units per USD" (e.g., 1 USD = 0.00028 ETH).
+  //       // Convert to "USD per unit" (e.g., 1 ETH = ~$3514) for straightforward UI calculations.
 
-        const usdPerUnit: Record<string, number> = {};
+  //       const usdPerUnit: Record<string, number> = {};
 
-        for (const [symbol, value] of Object.entries(rates ?? {})) {
-          const unitsPerUsd = Number.parseFloat(String(value));
-          if (Number.isFinite(unitsPerUsd) && unitsPerUsd > 0) {
-            usdPerUnit[symbol.toUpperCase()] = 1 / unitsPerUsd;
-          }
-        }
+  //       for (const [symbol, value] of Object.entries(rates ?? {})) {
+  //         const unitsPerUsd = Number.parseFloat(String(value));
+  //         if (Number.isFinite(unitsPerUsd) && unitsPerUsd > 0) {
+  //           usdPerUnit[symbol.toUpperCase()] = 1 / unitsPerUsd;
+  //         }
+  //       }
 
-        for (const token of ["ETH", "USDC", "USDT"]) {
-          usdPerUnit[token] ??= 1;
-        }
-        exchangeRate.current = usdPerUnit;
-      }
-    } catch (error) {
-      console.error("Error initializing Nexus:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  //       for (const token of ["ETH", "USDC", "USDT"]) {
+  //         usdPerUnit[token] ??= 1;
+  //       }
+  //       exchangeRate.current = usdPerUnit;
+  //     }
+  //   } catch (error) {
+  //     console.error("Error initializing Nexus:", error);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const deinitializeNexus = async () => {
     try {

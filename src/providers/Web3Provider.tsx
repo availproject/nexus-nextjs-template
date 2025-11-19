@@ -20,7 +20,7 @@ import { ConnectKitProvider, getDefaultConfig } from "connectkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import NexusProvider from "@/components/nexus/NexusProvider";
 
-const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
+// const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 
 const config = createConfig(
   getDefaultConfig({
@@ -40,22 +40,22 @@ const config = createConfig(
       optimismSepolia,
       polygonAmoy,
     ],
-    transports: {
-      [mainnet.id]: http(mainnet.rpcUrls.default.http[0]),
-      [arbitrum.id]: http(arbitrum.rpcUrls.default.http[0]),
-      [base.id]: http(base.rpcUrls.default.http[0]),
-      [optimism.id]: http(optimism.rpcUrls.default.http[0]),
-      [polygon.id]: http(polygon.rpcUrls.default.http[0]),
-      [avalanche.id]: http(avalanche.rpcUrls.default.http[0]),
-      [scroll.id]: http(scroll.rpcUrls.default.http[0]),
-      [sophon.id]: http(sophon.rpcUrls.default.http[0]),
-      [kaia.id]: http(kaia.rpcUrls.default.http[0]),
-      [sepolia.id]: http(sepolia.rpcUrls.default.http[0]),
-      [baseSepolia.id]: http(baseSepolia.rpcUrls.default.http[0]),
-      [arbitrumSepolia.id]: http(arbitrumSepolia.rpcUrls.default.http[0]),
-      [optimismSepolia.id]: http(optimismSepolia.rpcUrls.default.http[0]),
-      [polygonAmoy.id]: http(polygonAmoy.rpcUrls.default.http[0]),
-    },
+    // transports: {
+    //   [mainnet.id]: http(mainnet.rpcUrls.default.http[0]),
+    //   [arbitrum.id]: http(arbitrum.rpcUrls.default.http[0]),
+    //   [base.id]: http(base.rpcUrls.default.http[0]),
+    //   [optimism.id]: http(optimism.rpcUrls.default.http[0]),
+    //   [polygon.id]: http(polygon.rpcUrls.default.http[0]),
+    //   [avalanche.id]: http(avalanche.rpcUrls.default.http[0]),
+    //   [scroll.id]: http(scroll.rpcUrls.default.http[0]),
+    //   [sophon.id]: http(sophon.rpcUrls.default.http[0]),
+    //   [kaia.id]: http(kaia.rpcUrls.default.http[0]),
+    //   [sepolia.id]: http(sepolia.rpcUrls.default.http[0]),
+    //   [baseSepolia.id]: http(baseSepolia.rpcUrls.default.http[0]),
+    //   [arbitrumSepolia.id]: http(arbitrumSepolia.rpcUrls.default.http[0]),
+    //   [optimismSepolia.id]: http(optimismSepolia.rpcUrls.default.http[0]),
+    //   [polygonAmoy.id]: http(polygonAmoy.rpcUrls.default.http[0]),
+    // },
 
     walletConnectProjectId: walletConnectProjectId!,
 
@@ -71,18 +71,18 @@ const config = createConfig(
 );
 const queryClient = new QueryClient();
 
-const Web3Provider = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        <NexusProvider>
-          <ConnectKitProvider theme="soft" mode="light">
-            {children}
-          </ConnectKitProvider>
-        </NexusProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
-  );
-};
+// const Web3Provider = ({ children }: { children: React.ReactNode }) => {
+//   return (
+//     <WagmiProvider config={config}>
+//       <QueryClientProvider client={queryClient}>
+//         <NexusProvider>
+//           <ConnectKitProvider theme="soft" mode="light">
+//             {children}
+//           </ConnectKitProvider>
+//         </NexusProvider>
+//       </QueryClientProvider>
+//     </WagmiProvider>
+//   );
+// };
 
 export default Web3Provider;
