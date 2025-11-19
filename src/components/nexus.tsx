@@ -16,12 +16,15 @@ export default function Nexus() {
           <TabsTrigger value="balance">Unified Balance</TabsTrigger>
           <TabsTrigger value="bridge">Send Tokens</TabsTrigger>
         </TabsList>
-        <TabsContent value="balance" className="w-full items-center">
+        <TabsContent
+          value="balance"
+          className="w-full items-center flex justify-center"
+        >
           <UnifiedBalance />
         </TabsContent>
         <TabsContent
           value="bridge"
-          className="w-full items-center bg-transparent"
+          className="w-full items-center flex justify-center bg-transparent"
         >
           <FastBridge connectedAddress={address ?? `0x`} />
         </TabsContent>

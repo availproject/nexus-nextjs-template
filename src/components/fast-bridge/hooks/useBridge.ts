@@ -1,5 +1,5 @@
 import {
-  BridgeStepType,
+  type BridgeStepType,
   NEXUS_EVENTS,
   type NexusNetwork,
   NexusSDK,
@@ -8,11 +8,25 @@ import {
   SUPPORTED_CHAINS,
   type SUPPORTED_CHAINS_IDS,
   type SUPPORTED_TOKENS,
+  TOKEN_METADATA,
   type UserAsset,
 } from "@avail-project/nexus-core";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useReducer,
+  type RefObject,
+} from "react";
 import { type Address, isAddress } from "viem";
-import { useNexus } from "../../nexus/NexusProvider";
+import {
+  useStopwatch,
+  usePolling,
+  useNexusError,
+  useTransactionSteps,
+  type TransactionStatus,
+} from "../../common";
 
 export interface FastBridgeState {
   chain: SUPPORTED_CHAINS_IDS;
@@ -25,11 +39,8 @@ interface UseBridgeProps {
   network: NexusNetwork;
   connectedAddress: Address;
   nexusSDK: NexusSDK | null;
-  intent: OnIntentHookData | null;
-  setIntent: React.Dispatch<React.SetStateAction<OnIntentHookData | null>>;
-  setAllowance: React.Dispatch<
-    React.SetStateAction<OnAllowanceHookData | null>
-  >;
+  intent: RefObject<OnIntentHookData | null>;
+  allowance: RefObject<OnAllowanceHookData | null>;
   unifiedBalance: UserAsset[] | null;
   prefill?: {
     token: string;
@@ -38,7 +49,19 @@ interface UseBridgeProps {
     recipient?: Address;
   };
   onComplete?: () => void;
+  onStart?: () => void;
+  onError?: (message: string) => void;
+  fetchBalance: () => Promise<void>;
 }
+
+type BridgeState = {
+  inputs: FastBridgeState;
+  status: TransactionStatus;
+};
+type Action =
+  | { type: "setInputs"; payload: Partial<FastBridgeState> }
+  | { type: "resetInputs" }
+  | { type: "setStatus"; payload: TransactionStatus };
 
 const buildInitialInputs = (
   network: NexusNetwork,
@@ -67,29 +90,52 @@ const useBridge = ({
   connectedAddress,
   nexusSDK,
   intent,
-  setIntent,
-  setAllowance,
   unifiedBalance,
   prefill,
   onComplete,
+  onStart,
+  onError,
+  fetchBalance,
+  allowance,
 }: UseBridgeProps) => {
-  const { fetchUnifiedBalance, handleNexusError } = useNexus();
-  const [inputs, setInputs] = useState<FastBridgeState>(() =>
-    buildInitialInputs(network, connectedAddress, prefill)
-  );
+  const handleNexusError = useNexusError();
+  const initialState: BridgeState = {
+    inputs: buildInitialInputs(network, connectedAddress, prefill),
+    status: "idle",
+  };
+  function reducer(state: BridgeState, action: Action): BridgeState {
+    switch (action.type) {
+      case "setInputs":
+        return { ...state, inputs: { ...state.inputs, ...action.payload } };
+      case "resetInputs":
+        return {
+          ...state,
+          inputs: buildInitialInputs(network, connectedAddress, prefill),
+        };
+      case "setStatus":
+        return { ...state, status: action.payload };
+      default:
+        return state;
+    }
+  }
+  const [state, dispatch] = useReducer(reducer, initialState);
+  const inputs = state.inputs;
+  const setInputs = (next: FastBridgeState | Partial<FastBridgeState>) => {
+    dispatch({ type: "setInputs", payload: next as Partial<FastBridgeState> });
+  };
 
-  const [timer, setTimer] = useState(0);
-  const [startTxn, setStartTxn] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const loading = state.status === "executing";
   const [refreshing, setRefreshing] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
   const [lastExplorerUrl, setLastExplorerUrl] = useState<string>("");
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const commitLockRef = useRef<boolean>(false);
-  const [steps, setSteps] = useState<
-    Array<{ id: number; completed: boolean; step: BridgeStepType }>
-  >([]);
+  const {
+    steps,
+    onStepsList,
+    onStepComplete,
+    reset: resetSteps,
+  } = useTransactionSteps<BridgeStepType>();
 
   const areInputsValid = useMemo(() => {
     const hasToken = inputs?.token !== undefined && inputs?.token !== null;
@@ -110,15 +156,22 @@ const useBridge = ({
       console.error("Missing required inputs");
       return;
     }
-    setLoading(true);
+    dispatch({ type: "setStatus", payload: "executing" });
     setTxError(null);
+    onStart?.();
     try {
+      if (!nexusSDK) {
+        throw new Error("Nexus SDK not initialized");
+      }
       if (inputs?.recipient !== connectedAddress) {
         // Transfer
-        const transferTxn = await nexusSDK?.bridgeAndTransfer(
+        const transferTxn = await nexusSDK.bridgeAndTransfer(
           {
             token: inputs?.token,
-            amount: inputs?.amount,
+            amount: nexusSDK.utils.parseUnits(
+              inputs?.amount,
+              TOKEN_METADATA[inputs?.token].decimals
+            ),
             toChainId: inputs?.chain,
             recipient: inputs?.recipient,
           },
@@ -126,28 +179,10 @@ const useBridge = ({
             onEvent: (event) => {
               if (event.name === NEXUS_EVENTS.STEPS_LIST) {
                 const list = Array.isArray(event.args) ? event.args : [];
-                setSteps((prev) => {
-                  const completedTypes = new Set(
-                    prev
-                      .filter((s) => s.completed)
-                      .map((s) => s.step?.typeID ?? "")
-                  );
-                  return list.map((step, index) => ({
-                    id: index,
-                    completed: completedTypes.has(step?.typeID ?? ""),
-                    step,
-                  }));
-                });
+                onStepsList(list);
               }
               if (event.name === NEXUS_EVENTS.STEP_COMPLETE) {
-                const step = event.args;
-                setSteps((prev) =>
-                  prev.map((s) =>
-                    s?.step?.typeID === step?.typeID
-                      ? { ...s, completed: true }
-                      : s
-                  )
-                );
+                onStepComplete(event.args);
               }
             },
           }
@@ -162,38 +197,23 @@ const useBridge = ({
         return;
       }
       // Bridge
-      const bridgeTxn = await nexusSDK?.bridge(
+      const bridgeTxn = await nexusSDK.bridge(
         {
           token: inputs?.token,
-          amount: inputs?.amount,
+          amount: nexusSDK.utils.parseUnits(
+            inputs?.amount,
+            TOKEN_METADATA[inputs?.token].decimals
+          ),
           toChainId: inputs?.chain,
         },
         {
           onEvent: (event) => {
             if (event.name === NEXUS_EVENTS.STEPS_LIST) {
               const list = Array.isArray(event.args) ? event.args : [];
-              setSteps((prev) => {
-                const completedTypes = new Set(
-                  prev
-                    .filter((s) => s.completed)
-                    .map((s) => s.step?.typeID ?? "")
-                );
-                return list.map((step, index) => ({
-                  id: index,
-                  completed: completedTypes.has(step?.typeID ?? ""),
-                  step,
-                }));
-              });
+              onStepsList(list);
             }
             if (event.name === NEXUS_EVENTS.STEP_COMPLETE) {
-              const step = event.args;
-              setSteps((prev) =>
-                prev.map((s) =>
-                  s.step && s.step.typeID === step?.typeID
-                    ? { ...s, completed: true }
-                    : s
-                )
-              );
+              onStepComplete(event.args);
             }
           },
         }
@@ -208,30 +228,22 @@ const useBridge = ({
     } catch (error) {
       const { message } = handleNexusError(error);
       setTxError(message);
+      onError?.(message);
       setIsDialogOpen(false);
-    } finally {
-      setLoading(false);
-      setStartTxn(false);
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
+      dispatch({ type: "setStatus", payload: "error" });
     }
   };
 
   const onSuccess = async () => {
     // Close dialog and stop timer on success
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
+    stopwatch.stop();
+    dispatch({ type: "setStatus", payload: "success" });
     onComplete?.();
-    setStartTxn(false);
-    setIntent(null);
-    setAllowance(null);
-    setInputs(buildInitialInputs(network, connectedAddress, prefill));
+    intent.current = null;
+    allowance.current = null;
+    dispatch({ type: "resetInputs" });
     setRefreshing(false);
-    await fetchUnifiedBalance();
+    await fetchBalance();
   };
 
   const filteredUnifiedBalance = useMemo(() => {
@@ -241,7 +253,7 @@ const useBridge = ({
   const refreshIntent = async () => {
     setRefreshing(true);
     try {
-      await intent?.refresh([]);
+      await intent.current?.refresh([]);
     } catch (error) {
       console.error("Transaction failed:", error);
     } finally {
@@ -250,27 +262,27 @@ const useBridge = ({
   };
 
   const reset = () => {
-    intent?.deny();
-    setIntent(null);
-    setAllowance(null);
-    setInputs(buildInitialInputs(network, connectedAddress, prefill));
-    setLoading(false);
-    setStartTxn(false);
+    intent.current?.deny();
+    intent.current = null;
+    allowance.current = null;
+    dispatch({ type: "resetInputs" });
+    dispatch({ type: "setStatus", payload: "idle" });
     setRefreshing(false);
+    stopwatch.stop();
+    stopwatch.reset();
+    resetSteps();
   };
 
   const startTransaction = () => {
     // Reset timer for a fresh run
-    setTimer(0);
-    setStartTxn(true);
-    intent?.allow();
+    intent.current?.allow();
     setIsDialogOpen(true);
     setTxError(null);
   };
 
   const commitAmount = async () => {
     if (commitLockRef.current) return;
-    if (intent || loading || txError || !areInputsValid) return;
+    if (!intent.current || loading || txError || !areInputsValid) return;
     commitLockRef.current = true;
     try {
       await handleTransaction();
@@ -279,47 +291,23 @@ const useBridge = ({
     }
   };
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (intent) {
-      interval = setInterval(refreshIntent, 5000);
-    }
-    return () => {
-      clearInterval(interval);
-    };
-  }, [intent]);
+  usePolling(Boolean(intent.current) && !isDialogOpen, refreshIntent, 15000);
+
+  const stopwatch = useStopwatch({ running: isDialogOpen, intervalMs: 100 });
 
   useEffect(() => {
-    if (startTxn) {
-      timerRef.current = setInterval(() => {
-        setTimer((prev) => prev + 0.1);
-      }, 100);
-    }
-
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-  }, [startTxn]);
-
-  useEffect(() => {
-    if (intent) {
-      intent.deny();
-      setIntent(null);
+    if (intent.current) {
+      intent.current.deny();
+      intent.current = null;
     }
   }, [inputs]);
 
   useEffect(() => {
     if (!isDialogOpen) {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      setStartTxn(false);
+      stopwatch.stop();
+      stopwatch.reset();
     }
-  }, [isDialogOpen]);
+  }, [isDialogOpen, stopwatch]);
 
   useEffect(() => {
     if (txError) {
@@ -327,18 +315,10 @@ const useBridge = ({
     }
   }, [inputs]);
 
-  const stopTimer = () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    setStartTxn(false);
-  };
-
   return {
     inputs,
     setInputs,
-    timer,
+    timer: stopwatch.seconds,
     setIsDialogOpen,
     setTxError,
     loading,
@@ -349,10 +329,10 @@ const useBridge = ({
     reset,
     filteredUnifiedBalance,
     startTransaction,
-    stopTimer,
     commitAmount,
     lastExplorerUrl,
     steps,
+    status: state.status,
   };
 };
 

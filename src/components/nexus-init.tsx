@@ -1,6 +1,7 @@
+"use client";
 import { useAccount } from "wagmi";
 import { Button } from "./ui/button";
-import { ClockFading } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useNexus } from "./nexus/NexusProvider";
 import { EthereumProvider } from "@avail-project/nexus-core";
 
@@ -15,9 +16,9 @@ const NexusInitButton = () => {
 
   if (status === "connected" && !nexusSDK?.isInitialized()) {
     return (
-      <Button onClick={handleInitWithLoading}>
+      <Button onClick={handleInitWithLoading} className="h-10">
         {loading ? (
-          <ClockFading className="animate-spin size-5 text-primary-foreground" />
+          <Loader2 className="animate-spin size-5 text-primary-foreground" />
         ) : (
           "Connect Nexus"
         )}

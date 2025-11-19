@@ -60,14 +60,14 @@ const config = createConfig(
     walletConnectProjectId: walletConnectProjectId!,
 
     // Required App Info
-    appName: "Avail Nexus",
+    appName: "Avail Nexus Next.js Template",
 
     // Optional App Info
-    appDescription: "Avail Nexus",
+    appDescription: "Avail Nexus Next.js Template",
     appUrl: "https://www.availproject.org/",
     appIcon:
-      "https://www.availproject.org/_next/static/media/avail_logo.9c818c5a.png",
-  }),
+      "https://framerusercontent.com/images/fU0bGT9LbVp0sy4WwRkzkeOZuI.png?width=1552&height=514",
+  })
 );
 const queryClient = new QueryClient();
 
