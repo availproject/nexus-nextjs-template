@@ -100,12 +100,13 @@ const useExactOut = ({
       setTxError(null);
       seed(SWAP_EXPECTED_STEPS);
 
-      const amountWei = nexusSDK?.utils?.parseUnits?.(
-        inputs.toAmount,
-        inputs.toToken.decimals
+      const amountInBigInt = nexusSDK?.convertTokenReadableAmountToBigInt(
+        inputs?.toAmount,
+        inputs?.toToken?.tokenAddress,
+        inputs?.toChainID
       );
       const swapInput: ExactOutSwapInput = {
-        toAmount: amountWei,
+        toAmount: amountInBigInt,
         toChainId: inputs.toChainID,
         toTokenAddress: inputs.toToken.tokenAddress,
       };

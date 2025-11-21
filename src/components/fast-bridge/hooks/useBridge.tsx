@@ -113,12 +113,20 @@ const useBridge = ({
     setLoading(true);
     setTxError(null);
     try {
+      const amountInBigInt = nexusSDK?.convertTokenReadableAmountToBigInt(
+        inputs?.amount,
+        inputs?.token,
+        inputs?.chain
+      );
+      if (!amountInBigInt) {
+        throw new Error("Invalid amount");
+      }
       if (inputs?.recipient !== connectedAddress) {
         // Transfer
         const transferTxn = await nexusSDK?.bridgeAndTransfer(
           {
             token: inputs?.token,
-            amount: inputs?.amount,
+            amount: amountInBigInt,
             toChainId: inputs?.chain,
             recipient: inputs?.recipient,
           },
@@ -165,7 +173,7 @@ const useBridge = ({
       const bridgeTxn = await nexusSDK?.bridge(
         {
           token: inputs?.token,
-          amount: inputs?.amount,
+          amount: amountInBigInt,
           toChainId: inputs?.chain,
         },
         {
