@@ -1,5 +1,5 @@
 import { Check, Circle, LoaderPinwheel } from "lucide-react";
-import React, { FC, memo, useMemo } from "react";
+import React, { type FC, memo, useMemo } from "react";
 import {
   type BridgeStepType,
   type SwapStepType,
@@ -12,6 +12,7 @@ interface TransactionProgressProps {
   steps: Array<{ id: number; completed: boolean; step: ProgressStep }>;
   viewIntentUrl?: string;
   operationType?: string;
+  completed?: boolean;
 }
 
 export const getOperationText = (type: string) => {
@@ -66,19 +67,20 @@ const StepList: FC<{ steps: DisplayStep[]; currentIndex: number }> = memo(
 );
 
 StepList.displayName = "StepList";
-
 const TransactionProgress: FC<TransactionProgressProps> = ({
   timer,
   steps,
   viewIntentUrl,
   operationType = "bridge",
+  completed = false,
 }) => {
   const totalSteps = Array.isArray(steps) ? steps.length : 0;
   const completedSteps = Array.isArray(steps)
     ? steps.reduce((acc, s) => acc + (s?.completed ? 1 : 0), 0)
     : 0;
-  const percent = totalSteps > 0 ? completedSteps / totalSteps : 0;
-  const allCompleted = percent >= 1;
+  const rawPercent = totalSteps > 0 ? completedSteps / totalSteps : 0;
+  const percent = completed ? 1 : rawPercent;
+  const allCompleted = completed || percent >= 1;
   const opText = getOperationText(operationType);
   const headerText = allCompleted
     ? `${opText} Completed`
@@ -101,7 +103,7 @@ const TransactionProgress: FC<TransactionProgressProps> = ({
     }));
     const current = displaySteps.findIndex((st) => !st.completed);
     return { effectiveSteps: displaySteps, currentIndex: current };
-  }, [percent, opText]);
+  }, [percent, opText, completed]);
 
   return (
     <div className="w-full flex flex-col items-center">

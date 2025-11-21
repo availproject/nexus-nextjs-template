@@ -1,5 +1,5 @@
 "use client";
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useMemo } from "react";
 import { useNexus } from "../nexus/NexusProvider";
 import { Label } from "../ui/label";
 import { DollarSign } from "lucide-react";
@@ -13,12 +13,7 @@ import { Separator } from "../ui/separator";
 import { cn } from "@/lib/utils";
 
 const UnifiedBalance = ({ className }: { className?: string }) => {
-  const { unifiedBalance } = useNexus();
-
-  const formatBalance = useCallback((balance: string, decimals: number) => {
-    const num = Number.parseFloat(balance);
-    return num.toFixed(Math.min(6, decimals));
-  }, []);
+  const { unifiedBalance, nexusSDK } = useNexus();
 
   const totalFiat = useMemo(() => {
     if (!unifiedBalance) return "0.00";
@@ -38,7 +33,7 @@ const UnifiedBalance = ({ className }: { className?: string }) => {
   return (
     <div
       className={cn(
-        "w-full max-w-lg mx-auto p-4 flex flex-col gap-y-2 items-center overflow-y-scroll max-h-[372px] rounded-lg border border-border",
+        "w-full max-w-lg mx-auto py-4 px-1 sm:p-4 flex flex-col gap-y-2 items-center overflow-y-scroll max-h-[372px] rounded-lg border border-border",
         className
       )}
     >
@@ -71,22 +66,22 @@ const UnifiedBalance = ({ className }: { className?: string }) => {
                 hideChevron={false}
               >
                 <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-3">
-                    <div className="relative h-8 w-8">
+                  <div className="flex sm:flex-row flex-col items-center gap-3">
+                    <div className="relative size-6 sm:size-8">
                       {token.icon && (
                         <img
                           src={token.icon}
                           alt={token.symbol}
-                          className="rounded-full"
+                          className="rounded-full size-full"
                           loading="lazy"
                           decoding="async"
-                          width="32"
-                          height="32"
                         />
                       )}
                     </div>
                     <div className="text-left">
-                      <h3 className="font-semibold">{token.symbol}</h3>
+                      <h3 className="font-semibold sm:block hidden">
+                        {token.symbol}
+                      </h3>
                       <p className="text-sm text-muted-foreground">
                         {chainsLabel}
                       </p>
@@ -95,7 +90,10 @@ const UnifiedBalance = ({ className }: { className?: string }) => {
                   <div className="flex items-center gap-3">
                     <div className="flex flex-col items-end">
                       <p className="text-base font-medium">
-                        {formatBalance(token.balance, 6)}
+                        {nexusSDK?.utils?.formatTokenBalance(token.balance, {
+                          symbol: token.symbol,
+                          decimals: token.decimals,
+                        })}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         ${token.balanceInFiat.toFixed(2)}
@@ -110,23 +108,29 @@ const UnifiedBalance = ({ className }: { className?: string }) => {
                     <React.Fragment key={chain.chain.id}>
                       <div className="flex items-center justify-between px-2 py-1 rounded-md">
                         <div className="flex items-center gap-2">
-                          <div className="relative h-6 w-6">
+                          <div className="relative size-4  sm:size-6">
                             <img
                               src={chain?.chain?.logo}
                               alt={chain.chain.name}
                               sizes="100%"
-                              className="rounded-full"
+                              className="rounded-full size-full"
                               loading="lazy"
                               decoding="async"
-                              width="24"
-                              height="24"
                             />
                           </div>
-                          <span className="text-sm">{chain.chain.name}</span>
+                          <span className="text-sm sm:block hidden">
+                            {chain.chain.name}
+                          </span>
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-medium">
-                            {formatBalance(chain.balance, chain.decimals)}
+                            {nexusSDK?.utils?.formatTokenBalance(
+                              chain.balance,
+                              {
+                                symbol: token.symbol,
+                                decimals: token.decimals,
+                              }
+                            )}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             ${chain.balanceInFiat.toFixed(2)}

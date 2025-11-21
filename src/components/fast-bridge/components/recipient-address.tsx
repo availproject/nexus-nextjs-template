@@ -1,5 +1,5 @@
 "use client";
-import React, { FC, useState } from "react";
+import React, { type FC, useState } from "react";
 import { Input } from "../../ui/input";
 import { Check, Edit } from "lucide-react";
 import { Button } from "../../ui/button";
@@ -40,11 +40,11 @@ const RecipientAddress: FC<RecipientAddressProps> = ({
           </Button>
         </div>
       ) : (
-        <div className="flex items-center w-full justify-between">
-          <p className="font-semibold ">Recipient Address</p>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center w-full justify-between">
+          <p className="font-semibold">Recipient Address</p>
           <div className="flex items-center gap-x-3 ">
             {address && (
-              <p className="font-semibold ">
+              <p className="font-semibold">
                 {nexusSDK?.utils?.truncateAddress(address, 6, 6)}
               </p>
             )}

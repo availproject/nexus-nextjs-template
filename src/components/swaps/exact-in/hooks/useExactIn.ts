@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { type RefObject, useEffect, useMemo, useState } from "react";
 import {
   NexusSDK,
   SUPPORTED_CHAINS,
@@ -6,17 +6,20 @@ import {
   type ExactInSwapInput,
   NEXUS_EVENTS,
   type SwapStepType,
+  type OnSwapIntentHookData,
+  type UserAsset,
 } from "@avail-project/nexus-core";
 import { type Address } from "viem";
-import { useNexus } from "../../../nexus/NexusProvider";
 import {
   resolveDestinationFromPrefill,
   resolveSourceFromPrefill,
 } from "../../utils/prefill";
-import { useNexusError } from "@/components/common/hooks/useNexusError";
-import { useTransactionSteps } from "@/components/common/tx/useTransactionSteps";
-import { useStopwatch } from "@/components/common/hooks/useStopwatch";
-import { SWAP_EXPECTED_STEPS } from "@/components/common/tx/steps";
+import {
+  useStopwatch,
+  useTransactionSteps,
+  SWAP_EXPECTED_STEPS,
+  useNexusError,
+} from "../../../common";
 
 type SourceTokenInfo = {
   contractAddress: `0x${string}`;
@@ -44,6 +47,9 @@ interface SwapInputs {
 interface UseExactInProps {
   nexusSDK: NexusSDK | null;
   address?: Address;
+  swapIntent: RefObject<OnSwapIntentHookData | null>;
+  unifiedBalance: UserAsset[] | null;
+  fetchBalance: () => Promise<void>;
   onComplete?: (amount?: string) => void;
   onStart?: () => void;
   onError?: (message: string) => void;
@@ -58,13 +64,14 @@ interface UseExactInProps {
 
 const useExactIn = ({
   nexusSDK,
+  swapIntent,
+  unifiedBalance,
+  fetchBalance,
   onComplete,
   onStart,
   onError,
   prefill,
 }: UseExactInProps) => {
-  const { swapIntent, setSwapIntent, fetchUnifiedBalance, unifiedBalance } =
-    useNexus();
   const handleNexusError = useNexusError();
 
   const [inputs, setInputs] = useState<SwapInputs>({
@@ -87,10 +94,7 @@ const useExactIn = ({
     reset: resetSteps,
   } = useTransactionSteps<SwapStepType>();
   const swapCompleted = useMemo(
-    () =>
-      steps.some(
-        (s) => (s.step as any)?.type === "SWAP_COMPLETE" && s.completed
-      ),
+    () => steps.some((s) => s.step?.type === "SWAP_COMPLETE" && s.completed),
     [steps]
   );
   const stopwatch = useStopwatch({
@@ -123,16 +127,16 @@ const useExactIn = ({
       setLoading(true);
       setTxError(null);
       seed(SWAP_EXPECTED_STEPS);
-      const amountInBigInt = nexusSDK?.convertTokenReadableAmountToBigInt(
-        inputs?.fromAmount,
-        inputs?.fromToken?.contractAddress,
-        inputs?.fromChainID
+      const amountBigInt = nexusSDK.convertTokenReadableAmountToBigInt(
+        inputs.fromAmount,
+        inputs.fromToken.symbol,
+        inputs.fromChainID
       );
       const swapInput: ExactInSwapInput = {
         from: [
           {
             chainId: inputs.fromChainID,
-            amount: amountInBigInt,
+            amount: amountBigInt,
             tokenAddress: inputs.fromToken.contractAddress,
           },
         ],
@@ -159,14 +163,14 @@ const useExactIn = ({
       if (!result?.success) {
         throw new Error(result?.error || "Swap failed");
       }
-      setSwapIntent(null);
-      onComplete?.(swapIntent?.intent?.destination?.amount);
-      await fetchUnifiedBalance();
+      onComplete?.(swapIntent.current?.intent?.destination?.amount);
+      swapIntent.current = null;
+      await fetchBalance();
     } catch (error) {
       const { message } = handleNexusError(error);
       setTxError(message);
       onError?.(message);
-      setSwapIntent(null);
+      swapIntent.current = null;
       setIsDialogOpen(false);
     } finally {
       setLoading(false);
@@ -188,7 +192,7 @@ const useExactIn = ({
     setIsDialogOpen(false);
     setTxError(null);
     resetSteps();
-    setSwapIntent(null);
+    swapIntent.current = null;
     setSourceExplorerUrl("");
     setDestinationExplorerUrl("");
     setLoading(false);
@@ -232,14 +236,16 @@ const useExactIn = ({
     if (!swapIntent || isDialogOpen) return;
     const id = setInterval(async () => {
       try {
-        const updated = await swapIntent.refresh();
-        setSwapIntent({ ...swapIntent, intent: updated });
+        const updated = await swapIntent.current?.refresh();
+        if (updated) {
+          swapIntent.current!.intent = updated;
+        }
       } catch (e) {
         console.error(e);
       }
     }, 15000);
     return () => clearInterval(id);
-  }, [swapIntent, setSwapIntent, isDialogOpen]);
+  }, [swapIntent.current, isDialogOpen]);
 
   return {
     inputs,
@@ -255,6 +261,7 @@ const useExactIn = ({
     destinationExplorerUrl,
     handleSwap,
     reset: resetLocal,
+    areInputsValid,
   };
 };
 

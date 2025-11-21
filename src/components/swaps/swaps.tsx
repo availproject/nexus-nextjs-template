@@ -32,14 +32,12 @@ const Swaps = ({
 }: SwapsProps) => {
   if (exactIn)
     return (
-      <>
-        <SwapExactIn
-          onComplete={onComplete}
-          onStart={onStart}
-          onError={onError}
-          prefill={exactInprefill}
-        />
-      </>
+      <SwapExactIn
+        onComplete={onComplete}
+        onStart={onStart}
+        onError={onError}
+        prefill={exactInprefill}
+      />
     );
   return (
     <SwapExactOut
