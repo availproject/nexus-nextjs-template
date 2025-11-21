@@ -67,7 +67,7 @@ const config = createConfig(
     appUrl: "https://www.availproject.org/",
     appIcon:
       "https://www.availproject.org/_next/static/media/avail_logo.9c818c5a.png",
-  }),
+  })
 );
 const queryClient = new QueryClient();
 
@@ -75,11 +75,9 @@ const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <NexusProvider>
-          <ConnectKitProvider theme="soft" mode="light">
-            {children}
-          </ConnectKitProvider>
-        </NexusProvider>
+        <ConnectKitProvider theme="soft" mode="light">
+          <NexusProvider>{children}</NexusProvider>
+        </ConnectKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );
