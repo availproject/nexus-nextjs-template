@@ -63,8 +63,10 @@ const StepList: FC<{ steps: DisplayStep[]; currentIndex: number }> = memo(
         })}
       </div>
     );
-  }
+  },
 );
+
+StepList.displayName = "StepList";
 
 const TransactionProgress: FC<TransactionProgressProps> = ({
   timer,
@@ -93,7 +95,7 @@ const TransactionProgress: FC<TransactionProgressProps> = ({
       "Filled on destination",
     ];
     const thresholds = milestones.map(
-      (_, idx) => (idx + 1) / milestones.length
+      (_, idx) => (idx + 1) / milestones.length,
     );
     const displaySteps: DisplayStep[] = milestones.map((label, idx) => ({
       id: `M${idx}`,
