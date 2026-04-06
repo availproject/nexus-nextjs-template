@@ -65,7 +65,7 @@ const NexusProvider = ({
   const supportedChainsAndTokens =
     useRef<SupportedChainsAndTokensResult | null>(null);
   const swapSupportedChainsAndTokens = useRef<SupportedChainsResult | null>(
-    null
+    null,
   );
   const unifiedBalance = useRef<UserAsset[] | null>(null);
   const exchangeRate = useRef<Record<string, number> | null>(null);
@@ -76,53 +76,53 @@ const NexusProvider = ({
 
   const initChainsAndTokens = useCallback(() => {
     const list = sdk?.utils?.getSupportedChains(
-      config?.network === "testnet" ? 0 : undefined
+      config?.network === "testnet" ? 0 : undefined,
     );
     supportedChainsAndTokens.current = list ?? null;
     const swapList = sdk?.utils?.getSwapSupportedChainsAndTokens();
     swapSupportedChainsAndTokens.current = swapList ?? null;
   }, [sdk, config?.network]);
 
-  // const initializeNexus = async (provider: EthereumProvider) => {
-  //   setLoading(true);
-  //   try {
-  //     if (sdk.isInitialized()) throw new Error("Nexus is already initialized");
-  //     await sdk.initialize(provider);
-  //     setNexusSDK(sdk);
-  //     initChainsAndTokens();
-  //     const [unifiedBalanceResult, rates] = await Promise.allSettled([
-  //       sdk?.getUnifiedBalances(true),
-  //       sdk?.utils?.getCoinbaseRates(),
-  //     ]);
+  const initializeNexus = async (provider: EthereumProvider) => {
+    setLoading(true);
+    try {
+      if (sdk.isInitialized()) throw new Error("Nexus is already initialized");
+      await sdk.initialize(provider);
+      setNexusSDK(sdk);
+      initChainsAndTokens();
+      const [unifiedBalanceResult, rates] = await Promise.allSettled([
+        sdk?.getBalancesForBridge(),
+        sdk?.utils?.getCoinbaseRates(),
+      ]);
 
-  //     if (unifiedBalanceResult.status === "fulfilled") {
-  //       unifiedBalance.current = unifiedBalanceResult.value;
-  //     }
+      if (unifiedBalanceResult.status === "fulfilled") {
+        unifiedBalance.current = unifiedBalanceResult.value;
+      }
 
-  //     if (rates?.status === "fulfilled") {
-  //       // Coinbase returns "units per USD" (e.g., 1 USD = 0.00028 ETH).
-  //       // Convert to "USD per unit" (e.g., 1 ETH = ~$3514) for straightforward UI calculations.
+      if (rates?.status === "fulfilled") {
+        // Coinbase returns "units per USD" (e.g., 1 USD = 0.00028 ETH).
+        // Convert to "USD per unit" (e.g., 1 ETH = ~$3514) for straightforward UI calculations.
 
-  //       const usdPerUnit: Record<string, number> = {};
+        const usdPerUnit: Record<string, number> = {};
 
-  //       for (const [symbol, value] of Object.entries(rates ?? {})) {
-  //         const unitsPerUsd = Number.parseFloat(String(value));
-  //         if (Number.isFinite(unitsPerUsd) && unitsPerUsd > 0) {
-  //           usdPerUnit[symbol.toUpperCase()] = 1 / unitsPerUsd;
-  //         }
-  //       }
+        for (const [symbol, value] of Object.entries(rates ?? {})) {
+          const unitsPerUsd = Number.parseFloat(String(value));
+          if (Number.isFinite(unitsPerUsd) && unitsPerUsd > 0) {
+            usdPerUnit[symbol.toUpperCase()] = 1 / unitsPerUsd;
+          }
+        }
 
-  //       for (const token of ["ETH", "USDC", "USDT"]) {
-  //         usdPerUnit[token] ??= 1;
-  //       }
-  //       exchangeRate.current = usdPerUnit;
-  //     }
-  //   } catch (error) {
-  //     console.error("Error initializing Nexus:", error);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+        for (const token of ["ETH", "USDC", "USDT"]) {
+          usdPerUnit[token] ??= 1;
+        }
+        exchangeRate.current = usdPerUnit;
+      }
+    } catch (error) {
+      console.error("Error initializing Nexus:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const deinitializeNexus = async () => {
     try {
@@ -165,18 +165,19 @@ const NexusProvider = ({
         console.log("Nexus already initialized");
         return;
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (!provider || typeof (provider as any).request !== "function") {
         throw new Error("Invalid EIP-1193 provider");
       }
       await initializeNexus(provider);
       attachEventHooks();
     },
-    [sdk, loading, initializeNexus]
+    [sdk, loading, initializeNexus],
   );
 
   const fetchUnifiedBalance = async () => {
     try {
-      const updatedBalance = await sdk?.getUnifiedBalances(true);
+      const updatedBalance = await sdk?.getBalancesForBridge();
       unifiedBalance.current = updatedBalance;
     } catch (error) {
       console.error("Error fetching unified balance:", error);
@@ -234,7 +235,7 @@ const NexusProvider = ({
       swapIntent.current,
       exchangeRate.current,
       getFiatValue,
-    ]
+    ],
   );
   return (
     <NexusContext.Provider value={value}>{children}</NexusContext.Provider>

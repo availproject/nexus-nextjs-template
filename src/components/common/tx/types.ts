@@ -15,6 +15,7 @@ export type GenericStep<TStep> = {
 /**
  * Normalizes a step to a stable key. Prefers typeID, then type, otherwise JSON.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getStepKey(step: any): string {
   if (!step) return "";
   if (typeof step.typeID === "string" && step.typeID.length > 0) {

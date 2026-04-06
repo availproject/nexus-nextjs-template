@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useStableCallback } from "./useStableCallback";
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyFn = (...args: any[]) => any;
 
 export interface Debounced<T extends AnyFn> {
@@ -15,7 +15,7 @@ export interface Debounced<T extends AnyFn> {
  */
 export function useDebouncedCallback<T extends AnyFn>(
   fn: T,
-  delay: number
+  delay: number,
 ): Debounced<T> {
   const latest = useStableCallback(fn);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
